@@ -1,5 +1,5 @@
 # BloxLookup
-BloxLookup: Discord bot for viewing public Roblox profiles (avatar, friends, groups)
+BloxLookup: Discord bot for viewing public Roblox stats (avatar, friends, groups, games)
 
 ## Commands
 - /robloxuser: a player's public profile
