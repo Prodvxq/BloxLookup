@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BloxLookup: Roblox lookups inside Discord</title>
+<meta name="description" content="A Discord bot that shows public Roblox player, game, and group info with one slash command.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🧱%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet">
+<style>
+/* Colors live here. Change these to restyle the whole site. */
+:root {
+  color-scheme: light dark;
+  --bg: #f3f4fb;
+  --surface: #ffffff;
+  --line: #d9dcf0;
+  --text: #15183a;
+  --muted: #4f5486;
+  --accent: #ffc83d;
+  --accent-text: #15183a;
+  --link: #3340b8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12142a;
+    --surface: #1c1f3d;
+    --line: #2c3066;
+    --text: #eef0ff;
+    --muted: #a9aed6;
+    --link: #9fb0ff;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+}
+a { color: var(--link); }
+a:focus-visible, .btn:focus-visible { outline: 3px solid var(--link); outline-offset: 3px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+.logo { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 800; font-size: 1.25rem; }
+
+.hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; padding: 48px 0 72px; }
+h1 {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  line-height: 1.1;
+  margin: 0 0 20px;
+}
+.lead { color: var(--muted); font-size: 1.15rem; max-width: 46ch; margin: 0 0 28px; }
+.buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn {
+  display: inline-block; padding: 12px 20px; border-radius: 8px;
+  font-weight: 600; text-decoration: none;
+}
+.btn-main { background: var(--accent); color: var(--accent-text); }
+.btn-alt { border: 2px solid var(--line); color: var(--text); }
+
+/* A fake Discord reply: this is the thing visitors see first. */
+.discord { background: #313338; color: #dbdee1; border-radius: 12px; padding: 16px; font-size: 14px; line-height: 1.45; }
+.used { color: #949ba4; font-size: 13px; margin-bottom: 10px; }
+.used b { color: #dbdee1; font-weight: 600; }
+.used code { color: #c9cdfb; background: rgba(88, 101, 242, 0.3); padding: 1px 5px; border-radius: 4px; }
+.bot { display: flex; align-items: center; gap: 10px; font-weight: 600; color: #fff; }
+.bot .pic { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; font-size: 18px; }
+.app { background: #5865f2; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 4px; }
+.embed {
+  background: #2b2d31; border-left: 4px solid #ffc83d; border-radius: 4px;
+  padding: 12px 14px; margin: 8px 0 0 46px;
+  display: grid; grid-template-columns: 1fr 64px; gap: 4px 12px;
+}
+.embed .title { color: #00a8fc; font-weight: 600; font-size: 16px; }
+.embed .thumb {
+  grid-column: 2; grid-row: 1 / span 3; width: 64px; height: 64px; border-radius: 8px;
+  background: linear-gradient(135deg, #4c5bd4, #8a63d2); display: grid; place-items: center; color: #fff; font-weight: 700;
+}
+.fields { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 12px; margin-top: 6px; }
+.fields .wide { grid-column: 1 / -1; }
+.fields b { display: block; color: #fff; font-size: 13px; }
+
+section { padding: 40px 0; border-top: 1px solid var(--line); }
+h2 { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: 1.6rem; margin: 0 0 20px; }
+dl { margin: 0; }
+.cmd { display: grid; grid-template-columns: 160px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.cmd:last-child { border-bottom: 0; }
+dt code { font-size: 1.05rem; font-weight: 700; }
+dd { margin: 0; color: var(--muted); max-width: 70ch; }
+.note { max-width: 70ch; color: var(--muted); margin: 0; }
+
+footer { padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+footer p { margin: 0 0 6px; }
+
+@media (max-width: 800px) {
+  .hero { grid-template-columns: 1fr; gap: 32px; padding-bottom: 48px; }
+  .cmd { grid-template-columns: 1fr; gap: 2px; }
+  .embed { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="logo">🧱 BloxLookup</span>
+    <a href="https://github.com/Prodvxq/BloxLookup">GitHub</a>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div>
+        <h1>Look up any Roblox player, game, or group without leaving Discord.</h1>
+        <p class="lead">BloxLookup is a Discord bot for Roblox communities. Type a slash command, paste a name or link, and get the public profile back in seconds.</p>
+        <div class="buttons">
+          <!-- Replace the # below with your bot's invite link (from the Discord Developer Portal). -->
+          <a class="btn btn-main" href="#">Add BloxLookup to Discord</a>
+          <a class="btn btn-alt" href="https://github.com/Prodvxq/BloxLookup">See the code on GitHub</a>
+        </div>
+      </div>
+
+      <div class="discord" role="img" aria-label="Example of BloxLookup's reply to the /robloxuser command">
+        <div class="used"><b>ExampleUser</b> used <code>/robloxuser</code></div>
+        <div class="bot"><span class="pic">🧱</span> BloxLookup <span class="app">APP</span></div>
+        <div class="embed">
+          <div class="title">ExamplePlayer</div>
+          <div>No description.</div>
+          <div class="thumb">EP</div>
+          <div class="fields">
+            <div><b>Username</b>ExamplePlayer</div>
+            <div><b>User ID</b>123456789</div>
+            <div><b>Joined Roblox</b>2019-02-23</div>
+            <div><b>Friends</b>138</div>
+            <div><b>Followers</b>38</div>
+            <div><b>Following</b>29</div>
+            <div class="wide"><b>Groups (12)</b>Example Studio, Build Club, Obby Lovers (+9 more)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section>
+      <h2>Commands</h2>
+      <dl>
+        <div class="cmd">
+          <dt><code>/robloxuser</code></dt>
+          <dd>Type a username. Shows the avatar, join date, friends, followers, following, and groups.</dd>
+        </div>
+        <div class="cmd">
+          <dt><code>/game</code></dt>
+          <dd>Paste a game link or ID. Shows players online now, visits, favorites, votes, and the creator.</dd>
+        </div>
+        <div class="cmd">
+          <dt><code>/group</code></dt>
+          <dd>Paste a group link or ID. Shows the member count, owner, and whether joining is open.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section>
+      <h2>Only public information</h2>
+      <p class="note">BloxLookup reads what anyone can already see on a Roblox page. It can’t see private details like email addresses or Robux balances, and it doesn’t store anything.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built by <a href="https://github.com/Prodvxq">Prodvxq</a>.</p>
+    <p>BloxLookup is not affiliated with Roblox or Discord.</p>
+  </footer>
+
+</div>
+</body>
+</html>
